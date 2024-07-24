@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Favourites
+from models import db, User, Favourites, Planets, Starships, Characters
 #from models import Person
 
 app = Flask(__name__)
@@ -36,6 +36,8 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
+
+#ENDPOINT USER
 @app.route('/users', methods=['GET'])
 def get_all_users():
     users=User.query.all()
@@ -102,7 +104,8 @@ def delete_user(id):
          return jsonify({'msg':'usuario eliminado'}),204
      return jsonify({'msg':'no se encontró usuario a eliminar'}), 404
 
-
+#---------------------------------------------------------------------------------------------------
+#ENDPOINT FAVORITOS
 @app.route('/user/<int:user_id>/favourites', methods=['GET'])
 def get_favourites(user_id):
     #Recupera una instancia del modelo User desde la base de
@@ -126,6 +129,8 @@ def get_favourites(user_id):
     if favourites:
         return jsonify({'msg': 'mostrando favoritos', 'favourites': favourites}), 200
     return jsonify({'msg': 'No se encontraron favoritos'}), 404
+
+
 
 @app.route('/user/<int:user_id>/favourites', methods=['POST'])
 def add_favourites(user_id):
@@ -151,8 +156,7 @@ def add_favourites(user_id):
     return jsonify({'msg': 'Favorito creado', 'favourite': new_favourite.serialize()}), 200
 
 
-
-@app.route('/user/<int:user_id>/favourites/<int:favourite_id', methods=['DELETE'])
+@app.route('/user/<int:user_id>/favourites/<int:favourite_id>', methods=['DELETE'])
 def delete_favourites(user_id, favourite_id):
     user = User.query.get(user_id)
     if not user:
@@ -167,11 +171,102 @@ def delete_favourites(user_id, favourite_id):
          }),204
     return jsonify({'msg':'no se encontró favorito a eliminar'}), 404
 
+#--------------------------------------------------------------------------------------------------
+#ENDPOINT MOSTRAR PLANETAS, PERSONAJES Y NAVES
+@app.route('/planets', methods=['GET'])
+def show_planets():
+    planets=Planets.query.all()
+    planets = [planet.serialize() for planet in planets]
 
-
-
+    if not planets:
+        return jsonify({'msg': 'No hay planetas que mostrar'}),200
     
-   
+    return jsonify({'msg': 'mostrando planetas', 'planets':planets}),200
+
+@app.route('/starships', methods=['GET'])
+def show_starships():
+    starships=Starships.query.all()
+    starships = [starship.serialize() for starship in starships]
+
+    if not starships:
+        return jsonify({'msg': 'No hay naves que mostrar'}),200
+    
+    return jsonify({'msg': 'mostrando naves', 'starships': starships}),200
+
+@app.route('/characters', methods=['GET'])
+def show_characters():
+    characters=Characters.query.all()
+    characters = [character.serialize() for character in characters]
+
+    if not characters:
+        return jsonify({'msg': 'No hay personajes que mostrar'}),200
+    
+    return jsonify({'msg': 'mostrando personajes', 'characters':characters}),200
+
+
+#--------------------------------------------------------------------------------------------------
+#ENDPOINT AÑADIR PLANETAS, PERSONAJES Y NAVES
+@app.route('/add_datas', methods=['POST'])
+#/add_datas?type=characters
+#/add_datas?type=planets
+#/add_datas?type=starships
+def add_datas():
+    data_type = request.args.get('type')
+
+    if data_type == 'characters':
+        data = request.json
+        new_data = Characters(
+            name=data['name'],
+            height=data['height'],
+            mass=data['mass'],
+            hair_color=data['hair_color'],
+            skin_color=data['skin_color'],
+            birth_year=data['birth_year'],
+            gender=data['gender']
+        )
+        db.session.add(new_data)
+        db.session.commit()
+        return jsonify({'msg': 'Character creado', 'character': new_data.serialize()}), 201
+
+    elif data_type == 'planets':
+        data = request.json
+        new_data = Planets(
+            name=data['name'],
+            diameter=data['diameter'],
+            rotation_period=data['rotation_period'],
+            orbital_period=data['orbital_period'],
+            gravity=data['gravity'],
+            population=data['population'],
+            climate=data['climate'],
+            terrain=data['terrain']
+        )
+        db.session.add(new_data)
+        db.session.commit()
+        return jsonify({'msg': 'Planet creado', 'planet': new_data.serialize()}), 201
+
+    elif data_type == 'starships':
+        data = request.json
+        new_data = Starships(
+            name=data['name'],
+            model=data['model'],
+            starship_class=data['starship_class'],
+            manufacturer=data['manufacturer'],
+            cost_in_credits=data['cost_in_credits'],
+            length=data['length'],
+            crew=data['crew'],
+            passengers=data['passengers'],
+            max_atmosphering_speed=data['max_atmosphering_speed'],
+            cargo_capacity=data['cargo_capacity']
+        )
+        db.session.add(new_data)
+        db.session.commit()
+        return jsonify({'msg': 'Starship creado', 'starship': new_data.serialize()}), 201
+
+    else:
+        return jsonify({'msg': 'Tipo de dato no valido'}), 400
+
+
+
 
 # this only runs if `$ python src/app.py` is executed
 if __name__ == '__main__':
