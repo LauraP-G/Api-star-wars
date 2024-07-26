@@ -9,6 +9,7 @@ class User(db.Model):
     password = db.Column(db.String(80), unique=False, nullable=False)
     is_active = db.Column(db.Boolean, unique=False, nullable=False)
 
+#realizo la relacion con información cruzada
     favourite = db.relationship('Favourites', back_populates="user")
 
     def __repr__(self):
@@ -31,18 +32,24 @@ class Favourites(db.Model):
     planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'))
     starship_id = db.Column(db.Integer, db.ForeignKey('starships.id'))
 
+    #relacion entre user y favourites cruzada
     user = db.relationship('User', back_populates='favourite')
-    character = db.relationship('Characters', back_populates='favourite')
-    planet = db.relationship('Planets', back_populates='favourite')
-    starship=db.relationship('Starships', back_populates='favourite')
+    
+    #relacion entre personajes, planetas y vehículos unidireccional
+    character = db.relationship('Characters')
+    planet = db.relationship('Planets')
+    starship=db.relationship('Starships')
+
+   
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "character_id": self.character_id,
-            "planet_id": self.planet_id,
-            "starship_id":self.starship_id,
+            "character_name": self.character.name if self.character else None,
+            "planet_name": self.planet.name if self.planet else None,
+            "starship_name": self.starship.name if self.starship else None
+           
         }
 
 class Characters(db.Model):
@@ -57,7 +64,10 @@ class Characters(db.Model):
     birth_year = db.Column(db.String(10))
     gender = db.Column(db.Enum('male', 'female', 'others', name='gender'))
 
-    favourite = db.relationship('Favourites', back_populates='character')
+    
+
+    def __repr__(self):
+        return f'<Characters {self.name}>'
 
     def serialize(self):
         return {
@@ -84,7 +94,10 @@ class Planets(db.Model):
     climate = db.Column(db.String(50))
     terrain = db.Column(db.String(50))
 
-    favourite = db.relationship('Favourites', back_populates='planet')
+   
+
+    def __repr__(self):
+        return f'<Planets {self.name}>'
 
     def serialize(self):
         return {
@@ -114,7 +127,10 @@ class Starships(db.Model):
     max_atmosphering_speed = db.Column(db.Integer)
     cargo_capacity = db.Column(db.Integer)
 
-    favourite=db.relationship('Favourites', back_populates='starship')
+    
+
+    def __repr__(self):
+        return f'<Starship {self.name}>'
 
     def serialize(self):
         return {

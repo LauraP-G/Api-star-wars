@@ -58,7 +58,7 @@ def add_usser():
     if data['email'] and data['password']:
         user=User.query.filter_by(email=data['email']).first()
         if user:
-            return jsonify ({'msg':'Parece que ya te conocemos, intenta logearte'}),200
+            return jsonify ({'msg':'Parece que ya te conocemos, intenta logearte'}),400
         new_user=User(email=data['email'], password=data['password'], is_active=True)
         db.session.add(new_user)
         db.session.commit()
@@ -143,17 +143,34 @@ def add_favourites(user_id):
     planet_id = data.get('planet_id')
     starship_id = data.get('starship_id')
 
-    if not any([character_id, planet_id, starship_id]):
-        return jsonify({'msg': 'Al menos uno de los siguientes campos es necesario: character_id, planet_id, starship_id'}), 400
+    # Compruebo que solo un tipo de favorito se puede añadir, esto es importante para cuando quiero eliminar
+    # un favorito, ya que cada favorito debe tener su propio id si genero dos o tres favoritos al mismo tiempo
+    # ocurrirá que al momento de eliminar uno estaré elimando los que se crearon al mismo tiempo
+    favourites_count = sum([character_id is not None, planet_id is not None, starship_id is not None])
+    if favourites_count != 1:
+        return jsonify({'msg': 'Debes añadir tus favoritos de uno en uno'}), 400
 
-    favourite = Favourites.query.filter_by(user_id=user_id, character_id=character_id, planet_id=planet_id, starship_id=starship_id).first()
+    # Comprobar si el favorito ya existe
+    favourite = Favourites.query.filter_by(
+        user_id=user_id,
+        character_id=character_id if character_id else None,
+        planet_id=planet_id if planet_id else None,
+        starship_id=starship_id if starship_id else None
+    ).first()
     if favourite:
         return jsonify({'msg': 'Este elemento ya está en tus favoritos'}), 200
-   
-    new_favourite = Favourites(user_id=user_id, planet_id=planet_id, character_id=character_id, starship_id=starship_id)
+    
+    # Creo el nuevo favorito
+    new_favourite = Favourites(
+        user_id=user_id,
+        character_id=character_id if character_id else None,
+        planet_id=planet_id if planet_id else None,
+        starship_id=starship_id if starship_id else None
+    )
     db.session.add(new_favourite)
     db.session.commit()
     return jsonify({'msg': 'Favorito creado', 'favourite': new_favourite.serialize()}), 200
+
 
 
 @app.route('/user/<int:user_id>/favourites/<int:favourite_id>', methods=['DELETE'])
@@ -167,8 +184,7 @@ def delete_favourites(user_id, favourite_id):
     if favourite:
          db.session.delete(favourite)
          db.session.commit()
-         return jsonify({'msg':'Favorito eliminado'
-         }),204
+         return jsonify({'msg':'Favorito eliminado'}),204
     return jsonify({'msg':'no se encontró favorito a eliminar'}), 404
 
 #--------------------------------------------------------------------------------------------------
@@ -179,7 +195,7 @@ def show_planets():
     planets = [planet.serialize() for planet in planets]
 
     if not planets:
-        return jsonify({'msg': 'No hay planetas que mostrar'}),200
+        return jsonify({'msg': 'No hay planetas que mostrar'}),404
     
     return jsonify({'msg': 'mostrando planetas', 'planets':planets}),200
 
@@ -189,7 +205,7 @@ def show_starships():
     starships = [starship.serialize() for starship in starships]
 
     if not starships:
-        return jsonify({'msg': 'No hay naves que mostrar'}),200
+        return jsonify({'msg': 'No hay naves que mostrar'}),404
     
     return jsonify({'msg': 'mostrando naves', 'starships': starships}),200
 
@@ -199,7 +215,7 @@ def show_characters():
     characters = [character.serialize() for character in characters]
 
     if not characters:
-        return jsonify({'msg': 'No hay personajes que mostrar'}),200
+        return jsonify({'msg': 'No hay personajes que mostrar'}),404
     
     return jsonify({'msg': 'mostrando personajes', 'characters':characters}),200
 
